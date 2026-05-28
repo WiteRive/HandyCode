@@ -3,11 +3,11 @@
 """
 
 import sys
-from typing import Any
+import os
 
 
+# Цвета для терминала
 class Colors:
-    """Цвета для терминала"""
     RESET = '\033[0m'
     RED = '\033[91m'
     GREEN = '\033[92m'
@@ -17,92 +17,76 @@ class Colors:
     CYAN = '\033[96m'
     WHITE = '\033[97m'
     BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
-def supports_color() -> bool:
-    """Проверяет поддержку цветов терминалом"""
+def supports_color():
+    """Проверяет поддержку цветов"""
+    if os.name == 'nt':  # Windows
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+            return True
+        except:
+            return False
     return hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
 
 
-def colorize(text: str, color: str) -> str:
-    """Добавляет цвет к тексту"""
+def colorize(text, color):
+    """Добавляет цвет"""
     if supports_color():
         return f"{color}{text}{Colors.RESET}"
     return text
 
 
-def print_colored(text: str, color: str):
+def print_colored(text, color):
     """Выводит цветной текст"""
     print(colorize(text, color))
 
 
-def print_header(text: str):
+def print_header(text):
     """Выводит заголовок"""
     print(colorize(text, Colors.CYAN + Colors.BOLD))
 
 
-def print_success(text: str):
-    """Выводит сообщение об успехе"""
+def print_success(text):
+    """Выводит успех"""
     print(colorize(text, Colors.GREEN))
 
 
-def print_error(text: str) -> str:
-    """Выводит сообщение об ошибке"""
+def print_error(text):
+    """Выводит ошибку"""
     print(colorize(text, Colors.RED))
     return text
 
 
-def print_warning(text: str):
+def print_warning(text):
     """Выводит предупреждение"""
     print(colorize(text, Colors.YELLOW))
 
 
-def print_info(text: str):
-    """Выводит информационное сообщение"""
+def print_info(text):
+    """Выводит информацию"""
     print(colorize(text, Colors.BLUE))
 
 
 def print_logo():
-    """Выводит логотип HandyCode"""
+    """Выводит логотип"""
     from .logo import get_logo
     print(get_logo())
 
 
-def print_small_logo():
-    """Выводит маленький логотип"""
-    from .logo import get_small_logo
-    print(get_small_logo())
-
-
-def print_install_logo():
-    """Выводит логотип установки"""
-    from .logo import get_install_logo
-    print(get_install_logo())
-
-
-def truncate(text: str, max_length: int = 100) -> str:
-    """Обрезает текст до указанной длины"""
+def truncate(text, max_length=100):
+    """Обрезает текст"""
     if len(text) <= max_length:
         return text
     return text[:max_length - 3] + "..."
 
 
-def format_size(size_bytes: int) -> str:
-    """Форматирует размер в байтах в читаемый вид"""
-    for unit in ['Б', 'КБ', 'МБ', 'ГБ']:
+def format_size(size_bytes):
+    """Форматирует размер"""
+    for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024
-    return f"{size_bytes:.1f} ТБ"
-
-
-def confirm_action(message: str, default: bool = True) -> bool:
-    """Запрашивает подтверждение действия"""
-    suffix = "[Д/н]" if default else "[д/Н]"
-    response = input(f"{message} {suffix}: ").strip().lower()
-
-    if not response:
-        return default
-
-    return response in ['д', 'да', 'y', 'yes']
+    return f"{size_bytes:.1f} TB"

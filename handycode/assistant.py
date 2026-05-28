@@ -234,7 +234,7 @@ Speak Russian. Write code in English."""
 
         try:
             model_name = self._get_model_display_name()
-            print_info(f"\n{model_name}: ", end="")
+            print_info(f"\n{model_name}:")
 
             response = self._make_request(payload)
 
