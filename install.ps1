@@ -1,107 +1,71 @@
-# HandyCode Installer для Windows PowerShell
-# Запуск: irm https://raw.githubusercontent.com/yourusername/handycode/main/install.ps1 | iex
+# HandyCode Installer for Windows
+# Usage: irm https://raw.githubusercontent.com/WiteRive/HandyCode/main/install.ps1 -OutFile $env:TEMP\install.ps1; & $env:TEMP\install.ps1
 
 $ErrorActionPreference = "Continue"
 $ProgressPreference = "SilentlyContinue"
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Функции для вывода
-function Write-Color($Text, $Color = "White") {
-    Write-Host $Text
-}
-
-function Write-Step($Text) {
-    Write-Host ""
-    Write-Host $Text
-    Write-Host ("-" * 60)
-}
-
-function Write-Success($Text) {
-    Write-Host "[OK] $Text" -ForegroundColor Green
-}
-
-function Write-Error($Text) {
-    Write-Host "[ERROR] $Text" -ForegroundColor Red
-}
-
-function Write-Warning($Text) {
-    Write-Host "[!] $Text" -ForegroundColor Yellow
-}
-
-function Write-Info($Text) {
-    Write-Host "[*] $Text" -ForegroundColor Cyan
-}
-
-# Очистка экрана и логотип
 Clear-Host
 Write-Host @"
 
-    ╔══════════════════════════════════════════════════════╗
-    ║                                                      ║
-    ║         HANDYCODE - AI Ассистент                     ║
-    ║         Установщик для Windows                       ║
-    ║         v2.0.0                                       ║
-    ║                                                      ║
-    ╚══════════════════════════════════════════════════════╝
+    ====================================================
+          HANDYCODE - AI CODE ASSISTANT
+          Windows Installer v2.0.0
+    ====================================================
 
 "@ -ForegroundColor Cyan
 
-# Шаг 1: Проверка Python
-Write-Step "ШАГ 1/5: Проверка Python"
+# STEP 1: Check Python
+Write-Host "[1/5] Checking Python..." -ForegroundColor Yellow
 
 $pythonCmd = $null
-$pythonVersion = $null
-
-# Ищем Python разными способами
 $pythonPaths = @("python", "python3", "py")
+
 foreach ($cmd in $pythonPaths) {
     try {
-        $version = & $cmd --version 2>&1
+        $null = & $cmd --version 2>&1
         if ($LASTEXITCODE -eq 0) {
             $pythonCmd = $cmd
-            $pythonVersion = $version
+            $version = & $cmd --version 2>&1
+            Write-Host "  [OK] $version" -ForegroundColor Green
             break
         }
     } catch {}
 }
 
 if (-not $pythonCmd) {
-    Write-Error "Python не найден!"
+    Write-Host "  [ERROR] Python not found!" -ForegroundColor Red
     Write-Host ""
-    Write-Host "Пожалуйста, установите Python:"
-    Write-Host "1. Откройте https://python.org"
-    Write-Host "2. Скачайте Python 3.8 или новее"
-    Write-Host "3. При установке ОБЯЗАТЕЛЬНО отметьте галочку:"
-    Write-Host "   [V] Add Python to PATH"
-    Write-Host "4. Перезапустите терминал"
-    Write-Host "5. Запустите установщик снова"
+    Write-Host "  Please install Python 3.8+ from https://python.org"
+    Write-Host "  During installation, check [V] Add Python to PATH"
     Write-Host ""
-    Read-Host "Нажмите Enter для выхода"
+    Read-Host "Press Enter to exit"
     exit 1
 }
 
-Write-Success "Найден: $pythonVersion"
-
-# Шаг 2: Проверка pip
-Write-Step "ШАГ 2/5: Проверка pip"
+# STEP 2: Check pip
+Write-Host "[2/5] Checking pip..." -ForegroundColor Yellow
 
 try {
-    $pipVersion = & $pythonCmd -m pip --version 2>&1
-    Write-Success "pip работает"
+    $null = & $pythonCmd -m pip --version 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  [OK] pip is ready" -ForegroundColor Green
+    } else {
+        throw "pip check failed"
+    }
 } catch {
-    Write-Warning "pip не найден, устанавливаем..."
+    Write-Host "  [!] Installing pip..." -ForegroundColor Yellow
     try {
-        & $pythonCmd -m ensurepip --upgrade 2>&1
-        Write-Success "pip установлен"
+        & $pythonCmd -m ensurepip --upgrade 2>&1 | Out-Null
+        Write-Host "  [OK] pip installed" -ForegroundColor Green
     } catch {
-        Write-Error "Не удалось установить pip"
-        Read-Host "Нажмите Enter для выхода"
+        Write-Host "  [ERROR] Failed to install pip" -ForegroundColor Red
+        Read-Host "Press Enter to exit"
         exit 1
     }
 }
 
-# Шаг 3: Создание директорий
-Write-Step "ШАГ 3/5: Подготовка"
+# STEP 3: Prepare directories
+Write-Host "[3/5] Preparing directories..." -ForegroundColor Yellow
 
 $handycodeDir = "$env:USERPROFILE\.handycode"
 $binDir = "$env:USERPROFILE\.local\bin"
@@ -113,56 +77,49 @@ try {
     if (-not (Test-Path $binDir)) {
         New-Item -ItemType Directory -Path $binDir -Force | Out-Null
     }
-    Write-Success "Директории созданы"
+    Write-Host "  [OK] Directories created" -ForegroundColor Green
 } catch {
-    Write-Error "Не удалось создать директории: $_"
-    Read-Host "Нажмите Enter для выхода"
+    Write-Host "  [ERROR] Failed to create directories" -ForegroundColor Red
+    Read-Host "Press Enter to exit"
     exit 1
 }
 
-# Шаг 4: Установка HandyCode
-Write-Step "ШАГ 4/5: Установка HandyCode"
-
-Write-Info "Устанавливаю пакет..."
+# STEP 4: Install HandyCode
+Write-Host "[4/5] Installing HandyCode..." -ForegroundColor Yellow
 
 $installSuccess = $false
 
-# Способ 1: Установка из PyPI
-Write-Info "Пробую установить из PyPI..."
+# Method 1: Install from PyPI
+Write-Host "  [*] Trying PyPI..." -ForegroundColor Gray
 try {
     $result = & $pythonCmd -m pip install --user handycode 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Success "Пакет установлен из PyPI"
+        Write-Host "  [OK] Installed from PyPI" -ForegroundColor Green
         $installSuccess = $true
-    } else {
-        Write-Warning "PyPI: $result"
     }
-} catch {
-    Write-Warning "Не удалось установить из PyPI"
-}
+} catch {}
 
-# Способ 2: Установка из локальной папки если есть
+# Method 2: Install from local folder
 if (-not $installSuccess) {
-    # Ищем handycode в текущей директории
     if (Test-Path ".\setup.py") {
-        Write-Info "Найден локальный проект, устанавливаю..."
+        Write-Host "  [*] Found local project, installing..." -ForegroundColor Gray
         try {
             & $pythonCmd -m pip install --user -e . 2>&1
             if ($LASTEXITCODE -eq 0) {
-                Write-Success "Пакет установлен локально"
+                Write-Host "  [OK] Installed locally" -ForegroundColor Green
                 $installSuccess = $true
             }
         } catch {}
     }
 }
 
-# Способ 3: Установка из GitHub
+# Method 3: Install from GitHub
 if (-not $installSuccess) {
-    Write-Info "Пробую установить из GitHub..."
+    $gitCmd = Get-Command git -ErrorAction SilentlyContinue
 
-    $gitAvailable = Get-Command git -ErrorAction SilentlyContinue
+    if ($gitCmd) {
+        Write-Host "  [*] Trying GitHub..." -ForegroundColor Gray
 
-    if ($gitAvailable) {
         $tempDir = "$env:TEMP\handycode_install"
 
         if (Test-Path $tempDir) {
@@ -170,82 +127,74 @@ if (-not $installSuccess) {
         }
 
         try {
-            Write-Info "Клонирую репозиторий..."
-            git clone https://github.com/WiteRive/HandyCode.git $tempDir 2>&1
+            git clone https://github.com/WiteRive/HandyCode.git $tempDir 2>&1 | Out-Null
 
             if (Test-Path "$tempDir\setup.py") {
-                Set-Location $tempDir
+                Push-Location $tempDir
                 & $pythonCmd -m pip install --user -e . 2>&1
                 if ($LASTEXITCODE -eq 0) {
-                    Write-Success "Пакет установлен из GitHub"
+                    Write-Host "  [OK] Installed from GitHub" -ForegroundColor Green
                     $installSuccess = $true
                 }
-                Set-Location $env:USERPROFILE
+                Pop-Location
             }
         } catch {
-            Write-Warning "Не удалось установить из GitHub: $_"
+            Write-Host "  [!] GitHub method failed" -ForegroundColor Yellow
         }
-    } else {
-        Write-Warning "Git не найден, пропускаем установку из GitHub"
     }
 }
 
 if (-not $installSuccess) {
-    Write-Error "Не удалось установить HandyCode автоматически"
+    Write-Host "  [ERROR] Installation failed!" -ForegroundColor Red
     Write-Host ""
-    Write-Host "Попробуйте установить вручную:"
-    Write-Host "1. pip install handycode"
-    Write-Host "2. Или скачайте с https://github.com/yourusername/handycode"
+    Write-Host "  Try manual installation:"
+    Write-Host "  1. pip install handycode"
+    Write-Host "  2. Or download from: https://github.com/WiteRive/HandyCode"
     Write-Host ""
-    Read-Host "Нажмите Enter для выхода"
+    Read-Host "Press Enter to exit"
     exit 1
 }
 
-# Проверяем установку
+# Verify installation
 try {
     $version = & $pythonCmd -c "import handycode; print(handycode.__version__)" 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "HandyCode v$version установлен успешно"
-    }
+    Write-Host "  [OK] HandyCode v$version installed" -ForegroundColor Green
 } catch {
-    Write-Warning "Пакет установлен, но проверка не удалась: $_"
+    Write-Host "  [!] Installed but verification failed" -ForegroundColor Yellow
 }
 
-# Шаг 5: Настройка
-Write-Step "ШАГ 5/5: Настройка"
+# STEP 5: Configuration
+Write-Host "[5/5] Configuration..." -ForegroundColor Yellow
 
-# Запрашиваем API ключ
+# Ask for API key
 Write-Host ""
-Write-Host "Для работы нужен API ключ OpenRouter (бесплатно)"
-Write-Host "Получите ключ: https://openrouter.ai/keys"
+Write-Host "  An OpenRouter API key is required (free)" -ForegroundColor White
+Write-Host "  Get your key at: https://openrouter.ai/keys" -ForegroundColor Cyan
 Write-Host ""
 
-$apiKey = Read-Host "Введите API ключ (или Enter чтобы пропустить)"
+$apiKey = Read-Host "  Enter API key (or press Enter to skip)"
 
 if ($apiKey -and $apiKey.Length -gt 20) {
-    Write-Success "API ключ получен"
-} elseif ($apiKey) {
-    Write-Warning "Ключ слишком короткий, пропускаем"
+    Write-Host "  [OK] API key accepted" -ForegroundColor Green
+} elseif ($apiKey -and $apiKey.Length -le 20) {
+    Write-Host "  [!] Key too short, skipped" -ForegroundColor Yellow
     $apiKey = ""
 } else {
-    Write-Warning "Ключ не введён. Добавите позже в файл ~/.handycode/.env"
+    Write-Host "  [!] No key provided. Add it later in:" -ForegroundColor Yellow
+    Write-Host "     $handycodeDir\.env" -ForegroundColor Cyan
 }
 
-# Сохраняем конфигурацию
-$envContent = @"
-# HandyCode Configuration
-# Получить ключ: https://openrouter.ai/keys
-OPENROUTER_API_KEY=$apiKey
-"@
+# Save .env file
+$envContent = "# HandyCode Configuration`n# Get key: https://openrouter.ai/keys`nOPENROUTER_API_KEY=$apiKey`n"
 
 try {
-    [System.IO.File]::WriteAllText("$handycodeDir\.env", $envContent, [System.Text.Encoding]::UTF8)
-    Write-Success "Конфигурация сохранена"
+    [System.IO.File]::WriteAllText("$handycodeDir\.env", $envContent, [System.Text.Encoding]::ASCII)
+    Write-Host "  [OK] Config saved" -ForegroundColor Green
 } catch {
-    Write-Warning "Не удалось сохранить .env: $_"
+    Write-Host "  [!] Failed to save .env file" -ForegroundColor Yellow
 }
 
-# Сохраняем config.json
+# Save config.json
 $config = @{
     default_model = "deepseek"
     auto_approve = $false
@@ -257,75 +206,68 @@ $config = @{
 try {
     $configJson = $config | ConvertTo-Json
     [System.IO.File]::WriteAllText("$handycodeDir\config.json", $configJson, [System.Text.Encoding]::UTF8)
-    Write-Success "Конфиг сохранён"
+    Write-Host "  [OK] Settings saved" -ForegroundColor Green
 } catch {
-    Write-Warning "Не удалось сохранить config.json: $_"
+    Write-Host "  [!] Failed to save config" -ForegroundColor Yellow
 }
 
-# Создаём скрипты запуска
+# Create launcher scripts
 try {
-    # hc.bat
-    @"
-@echo off
-python -m handycode %*
-"@ | Out-File -FilePath "$binDir\hc.bat" -Encoding ASCII -Force
+    $hcBat = "@echo off`npython -m handycode %*`n"
+    [System.IO.File]::WriteAllText("$binDir\hc.bat", $hcBat, [System.Text.Encoding]::ASCII)
 
-    # handycode.bat
-    @"
-@echo off
-python -m handycode %*
-"@ | Out-File -FilePath "$binDir\handycode.bat" -Encoding ASCII -Force
+    $handycodeBat = "@echo off`npython -m handycode %*`n"
+    [System.IO.File]::WriteAllText("$binDir\handycode.bat", $handycodeBat, [System.Text.Encoding]::ASCII)
 
-    Write-Success "Скрипты запуска созданы"
+    Write-Host "  [OK] Launcher scripts created" -ForegroundColor Green
 } catch {
-    Write-Warning "Не удалось создать скрипты: $_"
+    Write-Host "  [!] Failed to create scripts" -ForegroundColor Yellow
 }
 
-# Добавляем в PATH
+# Add to PATH
 try {
     $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
     if ($userPath -notlike "*$binDir*") {
         [Environment]::SetEnvironmentVariable("PATH", "$userPath;$binDir", "User")
         $env:Path = "$env:Path;$binDir"
-        Write-Success "Добавлено в PATH"
+        Write-Host "  [OK] Added to PATH" -ForegroundColor Green
     } else {
-        Write-Success "Уже в PATH"
+        Write-Host "  [OK] Already in PATH" -ForegroundColor Green
     }
 } catch {
-    Write-Warning "Не удалось добавить в PATH. Добавьте вручную: $binDir"
+    Write-Host "  [!] Add to PATH manually: $binDir" -ForegroundColor Yellow
 }
 
-# Финальное сообщение
+# Final message
 Write-Host ""
-Write-Host ("=" * 60)
-Write-Host "УСТАНОВКА ЗАВЕРШЕНА!" -ForegroundColor Green
-Write-Host ("=" * 60)
+Write-Host "=" * 60 -ForegroundColor Cyan
+Write-Host "         INSTALLATION COMPLETE!" -ForegroundColor Green
+Write-Host "=" * 60 -ForegroundColor Cyan
 Write-Host ""
 
 if ($apiKey) {
-    Write-Host "[V] API ключ настроен" -ForegroundColor Green
+    Write-Host "  [V] API key configured" -ForegroundColor Green
 } else {
-    Write-Host "[!] Добавьте API ключ в файл:" -ForegroundColor Yellow
-    Write-Host "    $handycodeDir\.env" -ForegroundColor Cyan
+    Write-Host "  [!] Add API key to: $handycodeDir\.env" -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "Для использования:" -ForegroundColor White
+Write-Host "To start using HandyCode:" -ForegroundColor White
 Write-Host ""
-Write-Host "  1. Закройте это окно"
-Write-Host "  2. Откройте новый терминал (Win+R -> cmd или PowerShell)"
-Write-Host "  3. Введите команду:" -ForegroundColor White
+Write-Host "  1. Close this window" -ForegroundColor White
+Write-Host "  2. Open new terminal (Win+R -> cmd or PowerShell)" -ForegroundColor White
+Write-Host "  3. Type:" -ForegroundColor White
 Write-Host ""
 Write-Host "     hc" -ForegroundColor Green
 Write-Host ""
-Write-Host "Если команда не работает, перезагрузите компьютер"
-Write-Host "или используйте полный путь:"
+Write-Host "If command not found, restart your computer" -ForegroundColor Yellow
+Write-Host "or use full path:" -ForegroundColor Yellow
 Write-Host "  $binDir\hc.bat" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Примеры:" -ForegroundColor White
-Write-Host "  hc                              # Запуск" -ForegroundColor Green
-Write-Host "  hc -c 'Создай Python проект'     # Быстрая команда" -ForegroundColor Green
-Write-Host "  hc --help                       # Справка" -ForegroundColor Green
+Write-Host "Examples:" -ForegroundColor White
+Write-Host "  hc                         Start interactive mode" -ForegroundColor Green
+Write-Host "  hc -c 'Create Python app'   Quick command" -ForegroundColor Green
+Write-Host "  hc --help                   Show help" -ForegroundColor Green
 Write-Host ""
 
-Read-Host "Нажмите Enter для завершения"
+Read-Host "Press Enter to finish"
