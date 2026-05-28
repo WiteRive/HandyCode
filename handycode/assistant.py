@@ -244,33 +244,36 @@ Speak Russian. Write code in English."""
                 return name.upper()
         return self.current_model
 
-    def _parse_actions(self, response: str) -> List[Dict]:
+    def _parse_actions(self, response):
         actions = []
 
-        create_pattern = r'\[\[CREATE:(.+?)\]\][\s\S]*?```(?:[\w]*\n)?([\s\S]*?)```'
-        for match in re.finditer(create_pattern, response):
-            actions.append({
-                'type': 'create',
-                'path': match.group(1).strip(),
-                'content': match.group(2).strip()
-            })
+        # CREATE: берём текст после [[CREATE:path]] до следующего [[ или конца
+        create_pattern = r'\[\[CREATE:(.+?)\]\](.*?)(?=\[\[|$)'
+        for match in re.finditer(create_pattern, response, re.DOTALL):
+            path = match.group(1).strip()
+            content = match.group(2).strip()
+            # Убираем обрамляющие ``` если есть
+            content = re.sub(r'^```[\w]*\n', '', content)
+            content = re.sub(r'\n```$', '', content)
+            if content:
+                actions.append({'type': 'create', 'path': path, 'content': content})
 
-        modify_pattern = r'\[\[MODIFY:(.+?)\]\][\s\S]*?```(?:[\w]*\n)?([\s\S]*?)```'
-        for match in re.finditer(modify_pattern, response):
-            actions.append({
-                'type': 'modify',
-                'path': match.group(1).strip(),
-                'content': match.group(2).strip()
-            })
+        # MODIFY: также без обязательного ```
+        modify_pattern = r'\[\[MODIFY:(.+?)\]\](.*?)(?=\[\[|$)'
+        for match in re.finditer(modify_pattern, response, re.DOTALL):
+            path = match.group(1).strip()
+            content = match.group(2).strip()
+            content = re.sub(r'^```[\w]*\n', '', content)
+            content = re.sub(r'\n```$', '', content)
+            if content:
+                actions.append({'type': 'modify', 'path': path, 'content': content})
 
-        exec_pattern = r'\[\[EXEC:(.+?)\]\]'
-        for match in re.finditer(exec_pattern, response):
-            actions.append({
-                'type': 'exec',
-                'command': match.group(1).strip()
-            })
+        # EXEC
+        for match in re.finditer(r'\[\[EXEC:(.+?)\]\]', response):
+            actions.append({'type': 'exec', 'command': match.group(1).strip()})
 
-        return actions
+        # Сортировка: сначала файлы, потом команды
+        return sorted(actions, key=lambda x: 0 if x['type'] in ['create', 'modify'] else 1)
 
     def _execute_actions(self, actions: List[Dict]):
         if not actions:
