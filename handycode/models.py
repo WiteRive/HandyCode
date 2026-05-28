@@ -34,18 +34,18 @@ MODELS = {
 
 MODEL_SETTINGS = {
     "deepseek/deepseek-chat": {
-        "temperature": 0.3,
-        "max_tokens": 800000,
+        "temperature": 1,
+        "max_tokens": 8000,
         "description": "DeepSeek V3 - Лучший баланс скорости и качества"
     },
     "deepseek/deepseek-coder": {
-        "temperature": 0.1,
-        "max_tokens": 800000,
+        "temperature": 1,
+        "max_tokens": 8000,
         "description": "DeepSeek Coder - Специализирована для написания кода"
     },
     "deepseek/deepseek-r1": {
-        "temperature": 0.3,
-        "max_tokens": 400000,
+        "temperature": 1,
+        "max_tokens": 4000,
         "description": "DeepSeek R1 - Глубокое мышление и анализ"
     },
     "openai/gpt-4-turbo-preview": {
