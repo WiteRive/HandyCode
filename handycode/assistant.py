@@ -38,37 +38,28 @@ from handycode.utils import (
 
 
 class HandyCode:
-    """Основной класс ассистента HandyCode"""
-
-    def __init__(
-        self,
-        project_path: Path,
-        model: str = "deepseek",
-        auto_approve: bool = False,
-        config: Optional[Config] = None
-    ):
+    def __init__(self, project_path, model="deepseek", auto_approve=False, config=None):
         self.project_path = project_path
         self.auto_approve = auto_approve
         self.config = config or Config()
 
         self.api_key = self.config.get_api_key()
         if not self.api_key:
-            raise ValueError("API key not found. Set OPENROUTER_API_KEY")
+            raise ValueError("API key not found")
 
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
-
         self.current_model = MODELS.get(model, MODELS["deepseek"])
         self.model_settings = get_model_settings(self.current_model)
 
-        self.conversation_history = [
-            {
-                "role": "system",
-                "content": self._get_system_prompt()
-            }
-        ]
-
         self.file_manager = FileManager(self.project_path)
         self.security = SecurityChecker(self.project_path)
+
+        # Сканируем проект и создаём системный промпт с контекстом
+        project_context = self._build_project_context()
+
+        self.conversation_history = [
+            {"role": "system", "content": self._get_system_prompt() + project_context}
+        ]
 
         self.stats = {
             "messages_sent": 0,
@@ -82,34 +73,84 @@ class HandyCode:
         signal.signal(signal.SIGINT, self._signal_handler)
         self._interrupt_count = 0
 
-    def _get_system_prompt(self) -> str:
-        return """You are HandyCode, a powerful AI code assistant for the command line.
+    def _build_project_context(self):
+        """Собирает контекст проекта для системного промпта"""
+        context = f"\n\n=== PROJECT CONTEXT ===\n"
+        context += f"Working directory: {self.project_path}\n"
+
+        try:
+            # Получаем все файлы
+            all_files = []
+            for ext in self.file_manager.allowed_extensions:
+                all_files.extend(self.project_path.rglob(f"*{ext}"))
+
+            # Фильтруем
+            files = [f for f in all_files if f.is_file()
+                     and not any(ex in f.parts for ex in self.file_manager.excluded_dirs)]
+
+            context += f"\nFiles in project ({len(files)} total):\n"
+
+            # Список файлов
+            for file in sorted(files):
+                try:
+                    rel_path = file.relative_to(self.project_path)
+                    size = file.stat().st_size
+                    context += f"  - {rel_path} ({size} bytes)\n"
+                except:
+                    pass
+
+            # Содержимое файлов (до 50KB суммарно)
+            context += f"\nFile contents:\n"
+            total_size = 0
+            max_total = 50000
+
+            for file in sorted(files):
+                if total_size >= max_total:
+                    context += f"\n... (showing first {total_size} bytes, {len(files)} files total)\n"
+                    break
+
+                try:
+                    content = file.read_text(encoding='utf-8', errors='ignore')
+                    if len(content) > 5000:
+                        content = content[:5000] + "\n... (truncated)"
+
+                    rel_path = file.relative_to(self.project_path)
+                    context += f"\n=== {rel_path} ===\n{content}\n"
+                    total_size += len(content)
+                except:
+                    pass
+
+        except Exception as e:
+            context += f"\nError scanning project: {e}\n"
+
+        return context
+
+    def _get_system_prompt(self):
+        return """You are HandyCode, a powerful AI code assistant.
 
 CAPABILITIES:
-1. Create complete projects from scratch
-2. Modify existing files
-3. Execute shell commands
-4. Analyze code and find bugs
-5. Suggest architectural improvements
+1. Create files
+2. Modify existing files  
+3. Execute commands
+4. Analyze code
+5. Create projects from scratch
 
 ACTION FORMAT:
-To create a file:
 [[CREATE:path/to/file.ext]]
-full file content here
+file content here
+(no need for ``` markers)
 
-To modify a file:
 [[MODIFY:path/to/file.ext]]
+new file content here
 
-To run commands:
-[[EXEC:command to execute]]
+[[EXEC:command]]
 
-IMPORTANT RULES:
-1. ALWAYS create files BEFORE executing commands that use them
-2. ALWAYS show COMPLETE file contents
-3. Put CREATE actions BEFORE EXEC actions
-4. Create ALL necessary files
-5. Verify the project is ready to run
+IMPORTANT:
+1. ALWAYS create/modify files BEFORE executing commands
+2. Show COMPLETE file contents
+3. Use the project context provided below
 
+You can see all files in the project and their contents below.
 Speak Russian. Write code in English."""
 
     def _setup_readline(self):
@@ -127,85 +168,37 @@ Speak Russian. Write code in English."""
     def _signal_handler(self, sig, frame):
         self._interrupt_count += 1
         if self._interrupt_count == 1:
-            print("\n\nPress Ctrl+C again to exit, or /exit")
-            signal.signal(signal.SIGINT, self._signal_handler)
+            print("\n\nPress Ctrl+C again to exit")
         else:
             os._exit(0)
 
     def reset_interrupt(self):
         self._interrupt_count = 0
 
-    def _make_request(self, data: dict) -> str:
+    def _make_request(self, data):
         if HAS_REQUESTS:
-            return self._make_request_requests(data)
-        else:
-            return self._make_request_urllib(data)
-
-    def _make_request_requests(self, data: dict) -> str:
-        try:
-            response = requests.post(
-                self.api_url,
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "http://localhost:3000",
-                    "X-Title": "HandyCode"
-                },
-                json=data,
-                timeout=120
-            )
-            response.raise_for_status()
-            result = response.json()
-
-            if 'choices' in result and len(result['choices']) > 0:
-                return result['choices'][0]['message']['content']
-            return ""
-        except Exception as e:
-            print_error(f"API Error: {e}")
-            return ""
-
-    def _make_request_urllib(self, data: dict) -> str:
-        try:
-            json_data = json.dumps(data).encode('utf-8')
-            req = urllib.request.Request(
-                self.api_url,
-                data=json_data,
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "http://localhost:3000",
-                    "X-Title": "HandyCode"
-                },
-                method='POST'
-            )
-            ctx = ssl.create_default_context()
-            with urllib.request.urlopen(req, context=ctx, timeout=120) as response:
-                result = json.loads(response.read().decode('utf-8'))
-                if 'choices' in result and len(result['choices']) > 0:
+            try:
+                response = requests.post(
+                    self.api_url,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json=data,
+                    timeout=120
+                )
+                result = response.json()
+                if 'choices' in result and result['choices']:
                     return result['choices'][0]['message']['content']
-                return ""
-        except Exception as e:
-            print_error(f"Request error: {e}")
-            return ""
+            except Exception as e:
+                print_error(f"API Error: {e}")
+        return ""
 
-    def send_message(self, user_input: str) -> str:
+    def send_message(self, user_input):
         if user_input.startswith('/'):
             return self._handle_command(user_input)
 
-        context_keywords = [
-            'create', 'make', 'build', 'project', 'code', 'file',
-            'app', 'api', 'component', 'module', 'class',
-        ]
-
-        if any(kw in user_input.lower() for kw in context_keywords):
-            context = self.file_manager.scan_project()
-            if context:
-                user_input += f"\n\n[Project Context]\n{context}"
-
-        self.conversation_history.append({
-            "role": "user",
-            "content": user_input
-        })
+        self.conversation_history.append({"role": "user", "content": user_input})
 
         payload = {
             "model": self.current_model,
@@ -215,16 +208,12 @@ Speak Russian. Write code in English."""
         }
 
         try:
-            print_info(f"\n{self._get_model_display_name()}:")
+            print_info(f"\nDEEPSEEK:")
             response = self._make_request(payload)
 
             if response:
                 print(response)
-
-                self.conversation_history.append({
-                    "role": "assistant",
-                    "content": response
-                })
+                self.conversation_history.append({"role": "assistant", "content": response})
 
                 actions = self._parse_actions(response)
                 if actions:
@@ -232,33 +221,23 @@ Speak Russian. Write code in English."""
 
                 self.stats["messages_sent"] += 1
                 return response
-
-            return print_error("Empty response from API")
-
         except Exception as e:
             return print_error(f"Error: {e}")
-
-    def _get_model_display_name(self) -> str:
-        for name, model_id in MODELS.items():
-            if model_id == self.current_model:
-                return name.upper()
-        return self.current_model
 
     def _parse_actions(self, response):
         actions = []
 
-        # CREATE: берём текст после [[CREATE:path]] до следующего [[ или конца
+        # CREATE
         create_pattern = r'\[\[CREATE:(.+?)\]\](.*?)(?=\[\[|$)'
         for match in re.finditer(create_pattern, response, re.DOTALL):
             path = match.group(1).strip()
             content = match.group(2).strip()
-            # Убираем обрамляющие ``` если есть
             content = re.sub(r'^```[\w]*\n', '', content)
             content = re.sub(r'\n```$', '', content)
             if content:
                 actions.append({'type': 'create', 'path': path, 'content': content})
 
-        # MODIFY: также без обязательного ```
+        # MODIFY
         modify_pattern = r'\[\[MODIFY:(.+?)\]\](.*?)(?=\[\[|$)'
         for match in re.finditer(modify_pattern, response, re.DOTALL):
             path = match.group(1).strip()
@@ -275,21 +254,12 @@ Speak Russian. Write code in English."""
         # Сортировка: сначала файлы, потом команды
         return sorted(actions, key=lambda x: 0 if x['type'] in ['create', 'modify'] else 1)
 
-    def _execute_actions(self, actions: List[Dict]):
+    def _execute_actions(self, actions):
         if not actions:
             return
 
-        # СОРТИРУЕМ: сначала CREATE/MODIFY, потом EXEC
-        file_actions = [a for a in actions if a['type'] in ['create', 'modify']]
-        exec_actions = [a for a in actions if a['type'] == 'exec']
-
-        all_actions = file_actions + exec_actions
-
-        if not all_actions:
-            return
-
         print_header("\nFILE ACTIONS")
-        for i, action in enumerate(all_actions, 1):
+        for i, action in enumerate(actions, 1):
             if action['type'] == 'create':
                 print(f"  {i}. Create: {action['path']}")
             elif action['type'] == 'modify':
@@ -300,126 +270,61 @@ Speak Russian. Write code in English."""
         if self.auto_approve:
             choice = 'A'
         else:
-            print("\n[A] All  [S] Skip all  [C] Cancel")
+            print("\n[A] All  [S] Skip  [C] Cancel")
             choice = input("> ").strip().upper()
 
-        if choice == 'C':
-            print_warning("Cancelled")
-            return
+        if choice == 'A':
+            for action in actions:
+                self._execute_action(action)
         elif choice == 'S':
-            print_warning("Skipped")
             return
-        elif choice == 'A':
-            # Сначала создаём/изменяем файлы
-            for action in file_actions:
-                self._execute_action(action)
-            # Потом выполняем команды
-            for action in exec_actions:
-                self._execute_action(action)
-        elif choice.isdigit():
-            idx = int(choice) - 1
-            if 0 <= idx < len(all_actions):
-                self._execute_action(all_actions[idx])
-
-    def _execute_action(self, action: Dict):
-        try:
-            if action['type'] == 'create':
-                self._create_file(action['path'], action['content'])
-            elif action['type'] == 'modify':
-                self._modify_file(action['path'], action['content'])
-            elif action['type'] == 'exec':
-                self._execute_command(action['command'])
-        except Exception as e:
-            print_error(f"Action failed: {e}")
-
-    def _create_file(self, path: str, content: str):
-        if not self.security.is_safe_path(path):
-            print_error(f"Unsafe path: {path}")
+        elif choice == 'C':
             return
 
-        if self.file_manager.create_file(path, content):
-            self.stats["files_created"].append(path)
+    def _execute_action(self, action):
+        if action['type'] == 'create':
+            self.file_manager.create_file(action['path'], action['content'])
+        elif action['type'] == 'modify':
+            self.file_manager.modify_file(action['path'], action['content'])
+        elif action['type'] == 'exec':
+            self.file_manager.execute_command(action['command'])
 
-    def _modify_file(self, path: str, content: str):
-        if not self.security.is_safe_path(path):
-            print_error(f"Unsafe path: {path}")
-            return
-
-        if self.file_manager.modify_file(path, content):
-            self.stats["files_modified"].append(path)
-
-    def _execute_command(self, command: str):
-        if not self.security.is_safe_command(command):
-            print_error(f"Unsafe command: {command}")
-            return
-
-        if self.file_manager.execute_command(command):
-            self.stats["commands_executed"].append(command)
-
-    def _handle_command(self, user_input: str) -> str:
-        parts = user_input.split()
-        cmd = parts[0].lower()
-
+    def _handle_command(self, user_input):
+        cmd = user_input.lower().split()[0]
         if cmd in ['/help', '/h']:
-            print("""
-COMMANDS:
-  /help          Show help
-  /scan          Scan project
-  /models        List models
-  /model NAME    Switch model
-  /clear         Clear history
-  /save          Save session
-  /stats         Statistics
-  /exit          Exit
-            """)
+            print("\nCommands: /help /scan /models /clear /stats /exit")
         elif cmd in ['/scan', '/s']:
             print(self.file_manager.scan_project())
         elif cmd in ['/models', '/m']:
-            for name, model_id in MODELS.items():
-                marker = " (current)" if model_id == self.current_model else ""
-                print(f"  {name}{marker}")
+            for name in MODELS:
+                print(f"  {name}")
         elif cmd in ['/clear', '/c']:
             self.conversation_history = [self.conversation_history[0]]
             print_success("Cleared")
-        elif cmd in ['/save']:
-            self.file_manager.save_session(
-                self.conversation_history,
-                self.current_model,
-                self.stats
-            )
-        elif cmd in ['/stats']:
-            duration = datetime.now() - self.stats["start_time"]
-            print(f"Messages: {self.stats['messages_sent']}")
-            print(f"Created: {len(self.stats['files_created'])} files")
-            print(f"Modified: {len(self.stats['files_modified'])} files")
-            print(f"Commands: {len(self.stats['commands_executed'])}")
-            print(f"Duration: {duration}")
         elif cmd in ['/exit', '/q']:
-            print_success("Goodbye!")
             os._exit(0)
-        elif cmd in ['/model'] and len(parts) > 1:
-            model_name = parts[1]
-            if model_name in MODELS:
-                self.current_model = MODELS[model_name]
-                self.model_settings = get_model_settings(self.current_model)
-                print_success(f"Switched to: {model_name}")
-            else:
-                print_error(f"Unknown model: {model_name}")
-        else:
-            print_error(f"Unknown command: {cmd}")
-
         return ""
 
-    def execute_command(self, command: str):
-        print_header(f"\nExecuting: {command}")
+    def execute_command(self, command):
         self.send_message(command)
-        print_success("\nDone!")
 
     def run(self):
         print_logo()
         print()
         print_info(f"Project: {self.project_path}")
         print_info(f"Model: {self.current_model}")
+
+        # Показываем найденные файлы
+        try:
+            files = list(self.project_path.rglob("*"))
+            files = [f for f in files if f.is_file()
+                     and not any(ex in f.parts for ex in self.file_manager.excluded_dirs)]
+            visible = [f for f in files if not f.name.startswith('.')]
+            if visible:
+                print_info(f"\nFound {len(visible)} files in project")
+        except:
+            pass
+
         print_info("/help for commands\n")
 
         while True:
@@ -431,5 +336,4 @@ COMMANDS:
             except KeyboardInterrupt:
                 continue
             except EOFError:
-                print("\nGoodbye!")
                 break
