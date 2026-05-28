@@ -13,19 +13,19 @@ def get_logo() -> str:
 
     C = Colors
     logo = f"""
-{C.CYAN}{C.BOLD}╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║  {C.YELLOW}██╗  ██╗{C.CYAN}  {C.GREEN}█████╗{C.CYAN}  {C.BLUE}███╗   ██╗{C.CYAN}  {C.MAGENTA}██████╗{C.CYAN}  {C.RED}██╗   ██╗{C.CYAN}     {C.WHITE}██████╗{C.CYAN}  {C.GREEN}██████╗{C.CYAN}  {C.BLUE}██████╗{C.CYAN}  {C.MAGENTA}███████╗{C.CYAN} ║
-║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██╔══██╗{C.CYAN}  {C.BLUE}████╗  ██║{C.CYAN}  {C.MAGENTA}██╔══██╗{C.CYAN}  {C.RED}╚██╗ ██╔╝{C.CYAN}     {C.WHITE}██╔════╝{C.CYAN}  {C.GREEN}██╔══██╗{C.CYAN}  {C.BLUE}██╔══██╗{C.CYAN}  {C.MAGENTA}██╔════╝{C.CYAN} ║
-║  {C.YELLOW}███████║{C.CYAN}  {C.GREEN}███████║{C.CYAN}  {C.BLUE}██╔██╗ ██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}   {C.RED}╚████╔╝{C.CYAN}      {C.WHITE}██║{C.CYAN}        {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║  ██║{C.CYAN}  {C.MAGENTA}█████╗{C.CYAN}   ║
-║  {C.YELLOW}██╔══██║{C.CYAN}  {C.GREEN}██╔══██║{C.CYAN}  {C.BLUE}██║╚██╗██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}    {C.RED}╚██╔╝{C.CYAN}       {C.WHITE}██║{C.CYAN}        {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║  ██║{C.CYAN}  {C.MAGENTA}██╔══╝{C.CYAN}   ║
-║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║ ╚████║{C.CYAN}  {C.MAGENTA}██████╔╝{C.CYAN}     {C.RED}██║{C.CYAN}        {C.WHITE}╚██████╗{C.CYAN}  {C.GREEN}██████╔╝{C.CYAN}  {C.BLUE}██████╔╝{C.CYAN}  {C.MAGENTA}███████╗{C.CYAN} ║
-║  {C.YELLOW}╚═╝  ╚═╝{C.CYAN}  {C.GREEN}╚═╝  ╚═╝{C.CYAN}  {C.BLUE}╚═╝  ╚═══╝{C.CYAN}  {C.MAGENTA}╚═════╝{C.CYAN}      {C.RED}╚═╝{C.CYAN}        {C.WHITE} ╚═════╝{C.CYAN}  {C.GREEN}╚═════╝{C.CYAN}   {C.BLUE}╚═════╝{C.CYAN}   {C.MAGENTA}╚══════╝{C.CYAN} ║
-║                                                              ║
-║  {C.WHITE}AI Ассистент для разработки{C.CYAN}                                  ║
-║  {C.WHITE}Аналог Claude Code для командной строки{C.CYAN}                      ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝{C.RESET}
+{C.CYAN}{C.BOLD}╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                                           ║
+║  {C.YELLOW}██╗  ██╗{C.CYAN}  {C.GREEN}█████╗{C.CYAN}    {C.BLUE}███╗   ██╗{C.CYAN}  {C.MAGENTA}██████╗{C.CYAN}   {C.RED}██╗   ██╗{C.CYAN}    {C.WHITE}██████╗{C.CYAN}   {C.GREEN}███████╗{C.CYAN}  {C.BLUE}██████╗{C.CYAN}    {C.MAGENTA}███████╗{C.CYAN} ║
+║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██╔══██╗{C.CYAN}  {C.BLUE}████╗  ██║{C.CYAN}  {C.MAGENTA}██╔══██╗{C.CYAN}  {C.RED}╚██╗ ██╔╝{C.CYAN}    {C.WHITE}██╔════╝{C.CYAN} {C.GREEN}██╔════██╗{C.CYAN}  {C.BLUE}██╔══██╗{C.CYAN}  {C.MAGENTA}██╔════╝{C.CYAN} ║
+║  {C.YELLOW}███████║{C.CYAN}  {C.GREEN}███████║{C.CYAN}  {C.BLUE}██╔██╗ ██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}   {C.RED}╚████╔╝{C.CYAN}     {C.WHITE}██║{C.CYAN}     {C.GREEN}██║      ██║{C.CYAN}  {C.BLUE}██║  ██║{C.CYAN} {C.MAGENTA}█████╗{C.CYAN}   ║
+║  {C.YELLOW}██╔══██║{C.CYAN}  {C.GREEN}██╔══██║{C.CYAN}  {C.BLUE}██║╚██╗██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}    {C.RED}╚██╔╝{C.CYAN}      {C.WHITE}██║{C.CYAN}      {C.GREEN}██║    ██║{C.CYAN}  {C.BLUE}██║  ██║{C.CYAN}  {C.MAGENTA}██╔══╝{C.CYAN}   ║
+║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║ ╚████║{C.CYAN}  {C.MAGENTA}██████╔╝{C.CYAN}     {C.RED}██║{C.CYAN}       {C.WHITE}╚██████╗{C.CYAN}  {C.GREEN}███████╔╝{C.CYAN}  {C.BLUE}██████╔╝{C.CYAN}  {C.MAGENTA}███████╗{C.CYAN} ║
+║  {C.YELLOW}╚═╝  ╚═╝{C.CYAN}  {C.GREEN}╚═╝  ╚═╝{C.CYAN}  {C.BLUE}╚═╝  ╚═══╝{C.CYAN}  {C.MAGENTA}╚═════╝{C.CYAN}      {C.RED}╚═╝{C.CYAN}       {C.WHITE} ╚═════╝{C.CYAN}   {C.GREEN}╚═════╝{C.CYAN}   {C.BLUE}╚═════╝{C.CYAN}   {C.MAGENTA}╚══════╝{C.CYAN} ║
+║                                                                                           ║
+║  {C.WHITE}AI Ассистент для разработки{C.CYAN}                                             ║
+║  {C.WHITE}Prod. by AURA Tec.{C.CYAN}                                                      ║
+║                                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════════════════════╝{C.RESET}
 """
     return logo
 
@@ -35,22 +35,22 @@ def get_logo_plain() -> str:
     logo = r"""
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
-║  ██╗  ██╗  █████╗  ███╗   ██╗  ██████╗  ██╗   ██╗           ║
+║  ██╗  ██╗  █████╗  ███╗   ██╗  ██████╗  ██╗   ██╗            ║
 ║  ██║  ██║  ██╔══██╗ ████╗  ██║  ██╔══██╗ ╚██╗ ██╔╝           ║
 ║  ███████║  ███████║ ██╔██╗ ██║  ██║  ██║  ╚████╔╝            ║
 ║  ██╔══██║  ██╔══██║ ██║╚██╗██║  ██║  ██║   ╚██╔╝             ║
 ║  ██║  ██║  ██║  ██║ ██║ ╚████║  ██████╔╝    ██║              ║
 ║  ╚═╝  ╚═╝  ╚═╝  ╚═╝ ╚═╝  ╚═══╝  ╚═════╝     ╚═╝              ║
 ║                                                              ║
-║           ██████╗  ██████╗  ██████╗  ███████╗                ║
-║          ██╔════╝  ██╔══██╗ ██╔══██╗ ██╔════╝                ║
-║          ██║       ██║  ██║ ██║  ██║ █████╗                  ║
-║          ██║       ██║  ██║ ██║  ██║ ██╔══╝                  ║
-║          ╚██████╗  ██████╔╝ ██████╔╝ ███████╗                ║
-║           ╚═════╝  ╚═════╝  ╚═════╝  ╚══════╝                ║
+║           ██████╗   ███████╗   ██████╗  ███████╗             ║
+║          ██╔════╝  ██╔════██╗  ██╔══██╗ ██╔════╝             ║
+║          ██║      ██║      ██║ ██║  ██║ █████╗               ║
+║          ██║       ██║    ██║  ██║  ██║ ██╔══╝               ║
+║          ╚██████╗   ███████╔╝  ██████╔╝ ███████╗             ║
+║           ╚═════╝    ╚═════╝   ╚═════╝  ╚══════╝             ║
 ║                                                              ║
-║              AI Ассистент для разработки                      ║
-║         Аналог Claude Code для командной строки               ║
+║              AI Ассистент для разработки                     ║
+║         Prod. by AURA Tec.              ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 """
