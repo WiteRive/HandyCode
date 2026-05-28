@@ -8,12 +8,22 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
 WHITE='\033[1;37m'
-BOLD='\033[1m'
 NC='\033[0m'
+
+# Лог-файл
+LOG_FILE="/tmp/handycode_install_log.txt"
+echo "HandyCode Install Log" > "$LOG_FILE"
+echo "Date: $(date)" >> "$LOG_FILE"
+echo "" >> "$LOG_FILE"
+
+# Функция логирования
+log() {
+    echo "$1" | tee -a "$LOG_FILE"
+}
 
 # Функция для отображения логотипа
 show_logo() {
-echo -e "${CYAN}${BOLD}"
+echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                                                              ║"
 echo "║  ██╗  ██╗  █████╗  ███╗   ██╗  ██████╗  ██╗   ██╗           ║"
@@ -35,258 +45,373 @@ echo "║              AI Ассистент для разработки        
 echo "║                                                              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
+echo ""
+log "HandyCode Installer v2.0.0"
+log "========================================="
 }
 
-# Функция для запроса API ключа
-request_api_key() {
-    echo ""
-    echo -e "${YELLOW}🔑 НАСТРОЙКА API КЛЮЧА${NC}"
-    echo ""
-    echo -e "${WHITE}Для работы HandyCode требуется API ключ OpenRouter.${NC}"
-    echo -e "${WHITE}Вы можете получить его бесплатно на сайте:${NC}"
-    echo -e "${BLUE}https://openrouter.ai/keys${NC}"
-    echo ""
-    echo -e "${WHITE}1. Зарегистрируйтесь на openrouter.ai${NC}"
-    echo -e "${WHITE}2. Перейдите в раздел Keys${NC}"
-    echo -e "${WHITE}3. Создайте новый ключ${NC}"
-    echo -e "${WHITE}4. Скопируйте ключ и вставьте его ниже${NC}"
-    echo ""
-
-    while true; do
-        read -p "Введите ваш API ключ (или нажмите Enter чтобы пропустить): " api_key
-
-        if [ -z "$api_key" ]; then
-            echo ""
-            echo -e "${YELLOW}⚠️  API ключ не введён. Вы сможете добавить его позже в файл:${NC}"
-            echo -e "${BLUE}   ~/.handycode/.env${NC}"
-            echo ""
-            read -p "Продолжить установку без ключа? [Д/н]: " continue_without
-            if [[ "$continue_without" =~ ^[НнNn]$ ]]; then
-                echo -e "${YELLOW}Введите ключ или нажмите Enter чтобы пропустить${NC}"
-                continue
-            fi
-            api_key=""
-            break
-        fi
-
-        # Проверяем формат ключа (обычно начинается с sk-or-)
-        if [[ ${#api_key} -lt 20 ]]; then
-            echo -e "${RED}❌ Ключ слишком короткий. Проверьте ключ и попробуйте снова.${NC}"
-            continue
-        fi
-
-        echo ""
-        echo -e "${GREEN}✅ API ключ принят${NC}"
-        break
-    done
-
-    return_api_key="$api_key"
-}
-
-# Функция для добавления в PATH
-add_to_path() {
-    local config_file="$1"
-    local path_line='export PATH="$HOME/.local/bin:$PATH"'
-
-    if [ -f "$config_file" ]; then
-        if ! grep -q "$HOME/.local/bin" "$config_file"; then
-            echo "" >> "$config_file"
-            echo "# HandyCode" >> "$config_file"
-            echo "$path_line" >> "$config_file"
-        fi
+# Функция проверки команды
+check_command() {
+    if command -v "$1" &> /dev/null; then
+        log "  [OK] $1: $(command -v "$1")"
+        return 0
+    else
+        log "  [--] $1: not found"
+        return 1
     fi
 }
 
-# Показываем логотип
-show_logo
+# Функция для проверки Python
+check_python() {
+    log ""
+    log "[Step 1/5] Checking Python..."
 
-# Проверяем Python
-echo -e "${YELLOW}🔍 Проверка Python...${NC}"
-if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}❌ Python 3 не установлен${NC}"
-    echo "Установите Python 3.8+ с https://python.org"
-    exit 1
-fi
-
-PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-echo -e "${GREEN}✅ Python $PYTHON_VERSION найден${NC}"
-
-# Проверяем pip
-if ! command -v pip3 &> /dev/null; then
-    echo -e "${RED}❌ pip3 не установлен${NC}"
-    echo "Установите pip: python3 -m ensurepip --upgrade"
-    exit 1
-fi
-
-# Создаём директории
-INSTALL_DIR="$HOME/.handycode"
-BIN_DIR="$HOME/.local/bin"
-mkdir -p "$INSTALL_DIR" "$BIN_DIR"
-
-# Проверяем наличие git
-echo -e "${YELLOW}📦 Загрузка HandyCode...${NC}"
-if command -v git &> /dev/null; then
-    if [ -d "$INSTALL_DIR/repo" ]; then
-        echo -e "${BLUE}Обновление существующей установки...${NC}"
-        cd "$INSTALL_DIR/repo"
-        git pull 2>/dev/null || {
-            echo -e "${YELLOW}⚠️  Не удалось обновить через git, переустанавливаем...${NC}"
-            cd "$INSTALL_DIR"
-            rm -rf repo
-            git clone https://github.com/WiteRive/HandyCode.git repo 2>/dev/null
-        }
+    if command -v python3 &> /dev/null; then
+        PYTHON_CMD="python3"
+    elif command -v python &> /dev/null; then
+        PYTHON_CMD="python"
     else
-        git clone https://github.com/WiteRive/HandyCode.git "$INSTALL_DIR/repo" 2>/dev/null || {
-            echo -e "${YELLOW}⚠️  Git clone не удался, пробуем curl...${NC}"
-            if command -v curl &> /dev/null; then
-                curl -L https://github.com/WiteRive/HandyCode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
-                mv "$INSTALL_DIR/handycode-main" "$INSTALL_DIR/repo"
-            else
-                echo -e "${RED}❌ Ни git, ни curl не найдены${NC}"
-                exit 1
-            fi
-        }
-    fi
-else
-    if command -v curl &> /dev/null; then
-        curl -L https://github.com/WiteRive/HandyCode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
-        mv "$INSTALL_DIR/handycode-main" "$INSTALL_DIR/repo"
-    elif command -v wget &> /dev/null; then
-        wget -qO- https://github.com/WiteRive/HandyCode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
-        mv "$INSTALL_DIR/handycode-main" "$INSTALL_DIR/repo"
-    else
-        echo -e "${RED}❌ Ни git, ни curl, ни wget не найдены${NC}"
-        echo "Установите один из них или скачайте проект вручную"
+        log "  [ERROR] Python not found!"
+        echo -e "${RED}[ERROR] Python не найден!${NC}"
+        echo "Установите Python 3.8+ с https://python.org"
         exit 1
     fi
-fi
 
-cd "$INSTALL_DIR/repo"
+    PYTHON_VERSION=$($PYTHON_CMD --version 2>&1)
+    log "  [OK] Python found: $PYTHON_VERSION"
+    echo -e "${GREEN}[OK] $PYTHON_VERSION${NC}"
 
-# Устанавливаем пакет
-echo -e "${YELLOW}📦 Установка HandyCode...${NC}"
-pip3 install --user -e . 2>/dev/null || pip3 install --user .
+    # Проверяем версию
+    PYTHON_MAJOR=$($PYTHON_CMD -c "import sys; print(sys.version_info.major)" 2>&1)
+    PYTHON_MINOR=$($PYTHON_CMD -c "import sys; print(sys.version_info.minor)" 2>&1)
 
-# Проверяем установку
-if python3 -c "import handycode" 2>/dev/null; then
-    echo -e "${GREEN}✅ Пакет handycode установлен успешно${NC}"
-else
-    echo -e "${RED}❌ Ошибка установки пакета${NC}"
-    exit 1
-fi
+    if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]); then
+        log "  [ERROR] Python version too old: $PYTHON_MAJOR.$PYTHON_MINOR"
+        echo -e "${RED}[ERROR] Нужен Python 3.8+, у вас $PYTHON_MAJOR.$PYTHON_MINOR${NC}"
+        exit 1
+    fi
 
-# Создаём конфигурацию
-mkdir -p "$HOME/.handycode"
-
-# Запрашиваем API ключ
-request_api_key
-api_key="$return_api_key"
-
-# Сохраняем конфигурацию
-cat > "$HOME/.handycode/.env" << EOF
-# HandyCode Configuration
-# Получить API ключ: https://openrouter.ai/keys
-OPENROUTER_API_KEY=$api_key
-
-# Настройки по умолчанию (опционально)
-# HANDYCODE_DEFAULT_MODEL=deepseek
-# HANDYCODE_AUTO_APPROVE=false
-EOF
-
-chmod 600 "$HOME/.handycode/.env"
-
-# Создаём конфигурационный файл
-cat > "$HOME/.handycode/config.json" << 'EOF'
-{
-    "default_model": "deepseek",
-    "auto_approve": false,
-    "show_line_numbers": true,
-    "backup_before_modify": true,
-    "max_history": 100,
-    "language": "ru",
-    "installed_version": "2.0.0",
-    "install_date": "INSTALL_DATE_PLACEHOLDER"
+    log "  [OK] Python version OK: $PYTHON_MAJOR.$PYTHON_MINOR"
 }
-EOF
 
-# Подставляем дату установки
-INSTALL_DATE=$(date "+%Y-%m-%d %H:%M:%S")
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' "s/INSTALL_DATE_PLACEHOLDER/$INSTALL_DATE/" "$HOME/.handycode/config.json"
-else
-    sed -i "s/INSTALL_DATE_PLACEHOLDER/$INSTALL_DATE/" "$HOME/.handycode/config.json"
-fi
+# Функция проверки pip
+check_pip() {
+    log ""
+    log "[Step 2/5] Checking pip..."
 
-# Создаём скрипты запуска
-cat > "$BIN_DIR/hc" << 'EOF'
-#!/bin/bash
-python3 -m handycode "$@"
-EOF
-chmod +x "$BIN_DIR/hc"
+    if $PYTHON_CMD -m pip --version &> /dev/null; then
+        PIP_VERSION=$($PYTHON_CMD -m pip --version 2>&1)
+        log "  [OK] pip found: $PIP_VERSION"
+        echo -e "${GREEN}[OK] pip работает${NC}"
+        return 0
+    fi
 
-cat > "$BIN_DIR/handycode" << 'EOF'
-#!/bin/bash
-python3 -m handycode "$@"
-EOF
-chmod +x "$BIN_DIR/handycode"
+    log "  [--] pip not found, installing..."
+    echo -e "${YELLOW}[*] Устанавливаю pip...${NC}"
 
-# Добавляем в PATH
-add_to_path "$HOME/.bashrc"
-add_to_path "$HOME/.zshrc"
-add_to_path "$HOME/.bash_profile"
-add_to_path "$HOME/.profile"
+    $PYTHON_CMD -m ensurepip --upgrade >> "$LOG_FILE" 2>&1
+    if [ $? -eq 0 ]; then
+        log "  [OK] pip installed"
+        echo -e "${GREEN}[OK] pip установлен${NC}"
+        return 0
+    fi
 
-# Пытаемся добавить в текущую сессию
-export PATH="$HOME/.local/bin:$PATH" 2>/dev/null || true
+    # Пробуем через get-pip.py
+    log "  [*] Trying get-pip.py..."
+    curl -sS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py >> "$LOG_FILE" 2>&1
+    $PYTHON_CMD /tmp/get-pip.py --user >> "$LOG_FILE" 2>&1
 
-# Проверяем, работает ли команда
-if command -v hc &> /dev/null || command -v handycode &> /dev/null; then
-    COMMAND_WORKS=true
-else
-    COMMAND_WORKS=false
-fi
+    if $PYTHON_CMD -m pip --version &> /dev/null; then
+        log "  [OK] pip installed via get-pip.py"
+        echo -e "${GREEN}[OK] pip установлен${NC}"
+        return 0
+    fi
 
-# Финальное сообщение
-echo ""
-echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════════════╗"
-echo "║                                                              ║"
-echo "║              ✅ HANDYCODE УСТАНОВЛЕН!                         ║"
-echo "║                                                              ║"
-echo "╚══════════════════════════════════════════════════════════════╝${NC}"
-echo ""
+    log "  [ERROR] Failed to install pip"
+    echo -e "${RED}[ERROR] Не удалось установить pip${NC}"
+    return 1
+}
 
-if [ -n "$api_key" ]; then
-    echo -e "${GREEN}✅ API ключ настроен${NC}"
-else
-    echo -e "${YELLOW}⚠️  API ключ не настроен${NC}"
-    echo -e "${YELLOW}   Добавьте его в файл: $HOME/.handycode/.env${NC}"
-    echo -e "${YELLOW}   Или установите переменную: export OPENROUTER_API_KEY=ваш_ключ${NC}"
-fi
+# Функция установки пакета
+install_package() {
+    log ""
+    log "[Step 3/5] Installing HandyCode..."
 
-echo ""
-echo -e "${WHITE}📝 Быстрый старт:${NC}"
-echo ""
+    INSTALL_DIR="$HOME/.handycode"
+    BIN_DIR="$HOME/.local/bin"
 
-if [ "$COMMAND_WORKS" = false ]; then
-    echo -e "${YELLOW}⚠️  Чтобы использовать команды 'hc' и 'handycode', выполните:${NC}"
-    echo -e "${BLUE}   source ~/.bashrc${NC}"
-    echo -e "${BLUE}   # или${NC}"
-    echo -e "${BLUE}   source ~/.zshrc${NC}"
+    mkdir -p "$INSTALL_DIR" "$BIN_DIR"
+    log "  [OK] Directories created: $INSTALL_DIR, $BIN_DIR"
+
+    # Способ 1: pip install
+    log "  [*] Method 1: pip install handycode"
+    echo -e "${YELLOW}[*] Пробую установить через pip...${NC}"
+
+    $PYTHON_CMD -m pip install --user handycode >> "$LOG_FILE" 2>&1
+    if [ $? -eq 0 ]; then
+        log "  [OK] Installed via pip"
+        echo -e "${GREEN}[OK] Установлено через pip${NC}"
+        return 0
+    fi
+    log "  [--] pip install failed"
+
+    # Способ 2: pip install из GitHub
+    log "  [*] Method 2: pip install from GitHub"
+    echo -e "${YELLOW}[*] Пробую установить из GitHub...${NC}"
+
+    $PYTHON_CMD -m pip install --user git+https://github.com/WiteRive/HandyCode.git >> "$LOG_FILE" 2>&1
+    if [ $? -eq 0 ]; then
+        log "  [OK] Installed from GitHub via pip"
+        echo -e "${GREEN}[OK] Установлено из GitHub${NC}"
+        return 0
+    fi
+    log "  [--] pip+git failed"
+
+    # Способ 3: Клонирование git
+    log "  [*] Method 3: git clone"
+    echo -e "${YELLOW}[*] Пробую клонировать репозиторий...${NC}"
+
+    if command -v git &> /dev/null; then
+        TEMP_DIR="/tmp/handycode_install"
+        rm -rf "$TEMP_DIR"
+
+        git clone https://github.com/WiteRive/HandyCode.git "$TEMP_DIR" >> "$LOG_FILE" 2>&1
+
+        if [ -f "$TEMP_DIR/setup.py" ]; then
+            log "  [OK] Repository cloned"
+            cd "$TEMP_DIR"
+            $PYTHON_CMD -m pip install --user -e . >> "$LOG_FILE" 2>&1
+            cd - > /dev/null
+
+            if [ $? -eq 0 ]; then
+                log "  [OK] Installed from git clone"
+                echo -e "${GREEN}[OK] Установлено из git${NC}"
+                return 0
+            fi
+        fi
+        log "  [--] git clone install failed"
+    else
+        log "  [--] git not available"
+    fi
+
+    # Способ 4: Скачивание ZIP
+    log "  [*] Method 4: Download ZIP"
+    echo -e "${YELLOW}[*] Скачиваю архив...${NC}"
+
+    ZIP_FILE="/tmp/handycode.zip"
+    ZIP_DIR="/tmp/handycode_main"
+    rm -f "$ZIP_FILE"
+    rm -rf "$ZIP_DIR"
+
+    if command -v curl &> /dev/null; then
+        curl -L -o "$ZIP_FILE" https://github.com/WiteRive/HandyCode/archive/main.zip >> "$LOG_FILE" 2>&1
+    elif command -v wget &> /dev/null; then
+        wget -O "$ZIP_FILE" https://github.com/WiteRive/HandyCode/archive/main.zip >> "$LOG_FILE" 2>&1
+    else
+        log "  [ERROR] No curl or wget"
+        echo -e "${RED}[ERROR] Нет curl или wget${NC}"
+        return 1
+    fi
+
+    if [ -f "$ZIP_FILE" ]; then
+        log "  [OK] ZIP downloaded"
+        mkdir -p "$ZIP_DIR"
+
+        if command -v unzip &> /dev/null; then
+            unzip -q "$ZIP_FILE" -d "$ZIP_DIR" >> "$LOG_FILE" 2>&1
+        else
+            $PYTHON_CMD -c "import zipfile; zipfile.ZipFile('$ZIP_FILE').extractall('$ZIP_DIR')" >> "$LOG_FILE" 2>&1
+        fi
+
+        if [ -f "$ZIP_DIR/HandyCode-main/setup.py" ]; then
+            log "  [OK] ZIP extracted"
+            cd "$ZIP_DIR/HandyCode-main"
+            $PYTHON_CMD -m pip install --user -e . >> "$LOG_FILE" 2>&1
+            cd - > /dev/null
+
+            if [ $? -eq 0 ]; then
+                log "  [OK] Installed from ZIP"
+                echo -e "${GREEN}[OK] Установлено из архива${NC}"
+                return 0
+            fi
+        fi
+        log "  [--] ZIP install failed"
+    fi
+
+    # Способ 5: Ручная установка
+    log "  [*] Method 5: Manual install"
+    echo -e "${YELLOW}[*] Ручная установка...${NC}"
+
+    MODULE_DIR="$INSTALL_DIR/modules/handycode"
+    mkdir -p "$MODULE_DIR"
+
+    BASE_URL="https://raw.githubusercontent.com/WiteRive/HandyCode/main/handycode"
+
+    FILES="__init__.py __main__.py main.py cli.py assistant.py models.py file_manager.py security.py config.py utils.py logo.py project_templates.py"
+
+    for file in $FILES; do
+        if command -v curl &> /dev/null; then
+            curl -sS -L -o "$MODULE_DIR/$file" "$BASE_URL/$file" >> "$LOG_FILE" 2>&1
+        elif command -v wget &> /dev/null; then
+            wget -q -O "$MODULE_DIR/$file" "$BASE_URL/$file" >> "$LOG_FILE" 2>&1
+        fi
+
+        if [ -f "$MODULE_DIR/$file" ]; then
+            log "    [OK] $file"
+        else
+            log "    [--] $file failed"
+        fi
+    done
+
+    # Копируем в site-packages
+    SITE_PACKAGES=$($PYTHON_CMD -c "import site; print(site.getusersitepackages())" 2>&1)
+    if [ -d "$SITE_PACKAGES" ]; then
+        mkdir -p "$SITE_PACKAGES/handycode"
+        cp "$MODULE_DIR"/*.py "$SITE_PACKAGES/handycode/" 2>> "$LOG_FILE"
+        log "  [OK] Copied to site-packages: $SITE_PACKAGES/handycode"
+        echo -e "${GREEN}[OK] Файлы скопированы${NC}"
+        return 0
+    fi
+
+    log "  [ERROR] All methods failed"
+    echo -e "${RED}[ERROR] Все способы установки не сработали${NC}"
+    echo "Смотрите лог: $LOG_FILE"
+    return 1
+}
+
+# Функция проверки установки
+check_install() {
+    log ""
+    log "[Step 4/5] Checking installation..."
+
+    if $PYTHON_CMD -c "import handycode; print(handycode.__version__)" >> "$LOG_FILE" 2>&1; then
+        VERSION=$($PYTHON_CMD -c "import handycode; print(handycode.__version__)" 2>&1)
+        log "  [OK] HandyCode v$VERSION works!"
+        echo -e "${GREEN}[OK] HandyCode v$VERSION работает!${NC}"
+        return 0
+    fi
+
+    log "  [ERROR] Import failed"
+    echo -e "${RED}[ERROR] HandyCode не работает${NC}"
     echo ""
-fi
+    echo "Отладочная информация:"
+    $PYTHON_CMD -c "import handycode" 2>&1 | tee -a "$LOG_FILE"
+    return 1
+}
 
-echo -e "${WHITE}💡 Примеры использования:${NC}"
-echo -e "  ${GREEN}hc${NC}                              # Интерактивный режим"
-echo -e "  ${GREEN}hc -p мой-проект${NC}               # Открыть проект"
-echo -e "  ${GREEN}hc -c \"Создай React приложение\"${NC} # Быстрая команда"
-echo -e "  ${GREEN}hc -m deepseek-coder${NC}           # Выбрать модель"
-echo -e "  ${GREEN}hc --help${NC}                      # Справка"
-echo ""
+# Функция настройки
+configure() {
+    log ""
+    log "[Step 5/5] Configuration..."
 
-echo -e "${WHITE}📚 Полезные ссылки:${NC}"
-echo -e "  ${BLUE}• OpenRouter:${NC} https://openrouter.ai"
-echo -e "  ${BLUE}• Документация:${NC} https://github.com/yourusername/handycode"
-echo -e "  ${BLUE}• Баг-репорты:${NC} https://github.com/yourusername/handycode/issues"
-echo ""
+    CONFIG_DIR="$HOME/.handycode"
+    BIN_DIR="$HOME/.local/bin"
 
-echo -e "${GREEN}Приятного программирования! 🚀${NC}"
+    # API ключ
+    echo ""
+    echo -e "${YELLOW}Нужен API ключ OpenRouter (бесплатно)${NC}"
+    echo -e "${BLUE}Получите: https://openrouter.ai/keys${NC}"
+    echo ""
+    read -p "Введите API ключ (Enter - пропустить): " API_KEY
+
+    cat > "$CONFIG_DIR/.env" << EOF
+# HandyCode Configuration
+OPENROUTER_API_KEY=$API_KEY
+EOF
+
+    chmod 600 "$CONFIG_DIR/.env"
+    log "  [OK] Config saved to $CONFIG_DIR/.env"
+    echo -e "${GREEN}[OK] Конфигурация сохранена${NC}"
+
+    # Скрипты запуска
+    cat > "$BIN_DIR/hc" << EOF
+#!/bin/bash
+$PYTHON_CMD -m handycode "\$@"
+EOF
+    chmod +x "$BIN_DIR/hc"
+
+    cat > "$BIN_DIR/handycode" << EOF
+#!/bin/bash
+$PYTHON_CMD -m handycode "\$@"
+EOF
+    chmod +x "$BIN_DIR/handycode"
+
+    log "  [OK] Scripts created: $BIN_DIR/hc, $BIN_DIR/handycode"
+    echo -e "${GREEN}[OK] Скрипты созданы${NC}"
+
+    # Добавление в PATH
+    for rc in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$HOME/.bash_profile"; do
+        if [ -f "$rc" ]; then
+            if ! grep -q "$BIN_DIR" "$rc"; then
+                echo "" >> "$rc"
+                echo "# HandyCode" >> "$rc"
+                echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$rc"
+                log "  [OK] Added to $rc"
+            fi
+        fi
+    done
+
+    # Текущая сессия
+    export PATH="$BIN_DIR:$PATH"
+    log "  [OK] PATH updated"
+    echo -e "${GREEN}[OK] PATH обновлён${NC}"
+}
+
+# Функция финального сообщения
+show_final() {
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗"
+    echo "║                                                              ║"
+    echo "║              ✅ HANDYCODE УСТАНОВЛЕН!                         ║"
+    echo "║                                                              ║"
+    echo "╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    if [ -n "$API_KEY" ]; then
+        echo -e "${GREEN}[V] API ключ настроен${NC}"
+    else
+        echo -e "${YELLOW}[!] Добавьте API ключ в: $HOME/.handycode/.env${NC}"
+    fi
+
+    echo ""
+    echo -e "${WHITE}Для запуска:${NC}"
+    echo "  1. Перезапустите терминал (или выполните: source ~/.bashrc)"
+    echo "  2. Введите: hc"
+    echo ""
+    echo -e "${WHITE}Примеры:${NC}"
+    echo "  hc                    Интерактивный режим"
+    echo "  hc --help             Справка"
+    echo ""
+    echo -e "${WHITE}Лог установки:${NC} $LOG_FILE"
+}
+
+# Главная функция
+main() {
+    show_logo
+
+    check_python
+    check_pip
+
+    if ! install_package; then
+        echo ""
+        echo -e "${RED}Установка не удалась. Смотрите лог: $LOG_FILE${NC}"
+        echo ""
+        echo "Попробуйте установить вручную:"
+        echo "  pip install handycode"
+        echo "  или"
+        echo "  pip install git+https://github.com/WiteRive/HandyCode.git"
+        exit 1
+    fi
+
+    if ! check_install; then
+        echo ""
+        echo -e "${RED}Проверка не пройдена. Смотрите лог: $LOG_FILE${NC}"
+        exit 1
+    fi
+
+    configure
+    show_final
+}
+
+# Запуск
+main "$@"
