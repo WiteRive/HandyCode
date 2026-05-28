@@ -13,7 +13,7 @@ def get_logo() -> str:
 
     C = Colors
     logo = f"""
-{C.CYAN}{C.BOLD}╔═════════════════════════════════════════════════════════════════════════════════╗
+{C.CYAN}{C.BOLD}╔═════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║                                                                                                 ║
 ║  {C.YELLOW}██╗  ██╗{C.CYAN}  {C.GREEN}█████╗{C.CYAN}    {C.BLUE}███╗   ██╗{C.CYAN}  {C.MAGENTA}██████╗{C.CYAN}   {C.RED}██╗   ██╗{C.CYAN}    {C.WHITE}██████╗{C.CYAN}   {C.GREEN}███████╗{C.CYAN}  {C.BLUE}██████╗{C.CYAN}    {C.MAGENTA}███████╗{C.CYAN} ║
 ║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██╔══██╗{C.CYAN}  {C.BLUE}████╗  ██║{C.CYAN}  {C.MAGENTA}██╔══██╗{C.CYAN}  {C.RED}╚██╗ ██╔╝{C.CYAN}    {C.WHITE}██╔════╝{C.CYAN} {C.GREEN}██╔════██╗{C.CYAN}  {C.BLUE}██╔══██╗{C.CYAN}  {C.MAGENTA}██╔════╝{C.CYAN} ║
@@ -23,7 +23,7 @@ def get_logo() -> str:
 ║  {C.YELLOW}╚═╝  ╚═╝{C.CYAN}  {C.GREEN}╚═╝  ╚═╝{C.CYAN}  {C.BLUE}╚═╝  ╚═══╝{C.CYAN}  {C.MAGENTA}╚═════╝{C.CYAN}      {C.RED}╚═╝{C.CYAN}       {C.WHITE} ╚═════╝{C.CYAN}   {C.GREEN}╚═════╝{C.CYAN}   {C.BLUE}╚═════╝{C.CYAN}   {C.MAGENTA}╚══════╝{C.CYAN} ║
 ║                                                                                                 ║
 ║  {C.WHITE}AI Ассистент для разработки{C.CYAN}                                                                    ║
-║        {C.WHITE}Prod. by AURA Tec.{C.CYAN}                                                                        ║
+║        {C.WHITE}Prod. by AURA Tec.{C.CYAN}                                                                       ║
 ║                                                                                                 ║
 ╚═════════════════════════════════════════════════════════════════════════════════════════════════╝{C.RESET}
 """
@@ -73,17 +73,18 @@ def get_install_logo() -> str:
 
     C = Colors
     logo = f"""
-{C.CYAN}{C.BOLD}╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║  {C.YELLOW}██╗  ██╗{C.CYAN}  {C.GREEN}█████╗{C.CYAN}  {C.BLUE}███╗   ██╗{C.CYAN}  {C.MAGENTA}██████╗{C.CYAN}  {C.RED}██╗   ██╗{C.CYAN}     {C.WHITE}██████╗{C.CYAN}  {C.GREEN}██████╗{C.CYAN}  {C.BLUE}██████╗{C.CYAN}  {C.MAGENTA}███████╗{C.CYAN} ║
-║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██╔══██╗{C.CYAN}  {C.BLUE}████╗  ██║{C.CYAN}  {C.MAGENTA}██╔══██╗{C.CYAN}  {C.RED}╚██╗ ██╔╝{C.CYAN}     {C.WHITE}██╔════╝{C.CYAN}  {C.GREEN}██╔══██╗{C.CYAN}  {C.BLUE}██╔══██╗{C.CYAN}  {C.MAGENTA}██╔════╝{C.CYAN} ║
-║  {C.YELLOW}███████║{C.CYAN}  {C.GREEN}███████║{C.CYAN}  {C.BLUE}██╔██╗ ██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}   {C.RED}╚████╔╝{C.CYAN}      {C.WHITE}██║{C.CYAN}        {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║  ██║{C.CYAN}  {C.MAGENTA}█████╗{C.CYAN}   ║
-║  {C.YELLOW}██╔══██║{C.CYAN}  {C.GREEN}██╔══██║{C.CYAN}  {C.BLUE}██║╚██╗██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}    {C.RED}╚██╔╝{C.CYAN}       {C.WHITE}██║{C.CYAN}        {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║  ██║{C.CYAN}  {C.MAGENTA}██╔══╝{C.CYAN}   ║
-║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║ ╚████║{C.CYAN}  {C.MAGENTA}██████╔╝{C.CYAN}     {C.RED}██║{C.CYAN}        {C.WHITE}╚██████╗{C.CYAN}  {C.GREEN}██████╔╝{C.CYAN}  {C.BLUE}██████╔╝{C.CYAN}  {C.MAGENTA}███████╗{C.CYAN} ║
-║  {C.YELLOW}╚═╝  ╚═╝{C.CYAN}  {C.GREEN}╚═╝  ╚═╝{C.CYAN}  {C.BLUE}╚═╝  ╚═══╝{C.CYAN}  {C.MAGENTA}╚═════╝{C.CYAN}      {C.RED}╚═╝{C.CYAN}        {C.WHITE} ╚═════╝{C.CYAN}  {C.GREEN}╚═════╝{C.CYAN}   {C.BLUE}╚═════╝{C.CYAN}   {C.MAGENTA}╚══════╝{C.CYAN} ║
-║                                                              ║
-║                   {C.WHITE}{C.BOLD}УСТАНОВКА HANDYCODE{C.CYAN}                          ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝{C.RESET}
-"""
+    {C.CYAN}{C.BOLD}╔═════════════════════════════════════════════════════════════════════════════════════════════════╗
+    ║                                                                                                 ║
+    ║  {C.YELLOW}██╗  ██╗{C.CYAN}  {C.GREEN}█████╗{C.CYAN}    {C.BLUE}███╗   ██╗{C.CYAN}  {C.MAGENTA}██████╗{C.CYAN}   {C.RED}██╗   ██╗{C.CYAN}    {C.WHITE}██████╗{C.CYAN}   {C.GREEN}███████╗{C.CYAN}  {C.BLUE}██████╗{C.CYAN}    {C.MAGENTA}███████╗{C.CYAN} ║
+    ║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██╔══██╗{C.CYAN}  {C.BLUE}████╗  ██║{C.CYAN}  {C.MAGENTA}██╔══██╗{C.CYAN}  {C.RED}╚██╗ ██╔╝{C.CYAN}    {C.WHITE}██╔════╝{C.CYAN} {C.GREEN}██╔════██╗{C.CYAN}  {C.BLUE}██╔══██╗{C.CYAN}  {C.MAGENTA}██╔════╝{C.CYAN} ║
+    ║  {C.YELLOW}███████║{C.CYAN}  {C.GREEN}███████║{C.CYAN}  {C.BLUE}██╔██╗ ██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}   {C.RED}╚████╔╝{C.CYAN}     {C.WHITE}██║{C.CYAN}     {C.GREEN}██║      ██║{C.CYAN} {C.BLUE}██║  ██║{C.CYAN}  {C.MAGENTA}█████╗{C.CYAN}   ║
+    ║  {C.YELLOW}██╔══██║{C.CYAN}  {C.GREEN}██╔══██║{C.CYAN}  {C.BLUE}██║╚██╗██║{C.CYAN}  {C.MAGENTA}██║  ██║{C.CYAN}    {C.RED}╚██╔╝{C.CYAN}      {C.WHITE}██║{C.CYAN}      {C.GREEN}██║    ██║{C.CYAN}  {C.BLUE}██║  ██║{C.CYAN}  {C.MAGENTA}██╔══╝{C.CYAN}   ║
+    ║  {C.YELLOW}██║  ██║{C.CYAN}  {C.GREEN}██║  ██║{C.CYAN}  {C.BLUE}██║ ╚████║{C.CYAN}  {C.MAGENTA}██████╔╝{C.CYAN}     {C.RED}██║{C.CYAN}       {C.WHITE}╚██████╗{C.CYAN}  {C.GREEN}███████╔╝{C.CYAN}  {C.BLUE}██████╔╝{C.CYAN}  {C.MAGENTA}███████╗{C.CYAN} ║
+    ║  {C.YELLOW}╚═╝  ╚═╝{C.CYAN}  {C.GREEN}╚═╝  ╚═╝{C.CYAN}  {C.BLUE}╚═╝  ╚═══╝{C.CYAN}  {C.MAGENTA}╚═════╝{C.CYAN}      {C.RED}╚═╝{C.CYAN}       {C.WHITE} ╚═════╝{C.CYAN}   {C.GREEN}╚═════╝{C.CYAN}   {C.BLUE}╚═════╝{C.CYAN}   {C.MAGENTA}╚══════╝{C.CYAN} ║
+    ║                                                                                                 ║
+    ║  {C.WHITE}AI Ассистент для разработки{C.CYAN}                                                                    ║
+    ║        {C.WHITE}Prod. by AURA Tec.{C.CYAN}                                                                       ║
+    ║                                                                                                 ║
+    ╚═════════════════════════════════════════════════════════════════════════════════════════════════╝{C.RESET}
+    """
     return logo
