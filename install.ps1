@@ -171,7 +171,7 @@ if (-not $installSuccess) {
 
         try {
             Write-Info "Клонирую репозиторий..."
-            git clone https://github.com/yourusername/handycode.git $tempDir 2>&1
+            git clone https://github.com/WiteRive/HandyCode.git $tempDir 2>&1
 
             if (Test-Path "$tempDir\setup.py") {
                 Set-Location $tempDir

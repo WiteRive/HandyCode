@@ -133,13 +133,13 @@ if command -v git &> /dev/null; then
             echo -e "${YELLOW}⚠️  Не удалось обновить через git, переустанавливаем...${NC}"
             cd "$INSTALL_DIR"
             rm -rf repo
-            git clone https://github.com/yourusername/handycode.git repo 2>/dev/null
+            git clone https://github.com/WiteRive/HandyCode.git repo 2>/dev/null
         }
     else
-        git clone https://github.com/yourusername/handycode.git "$INSTALL_DIR/repo" 2>/dev/null || {
+        git clone https://github.com/WiteRive/HandyCode.git "$INSTALL_DIR/repo" 2>/dev/null || {
             echo -e "${YELLOW}⚠️  Git clone не удался, пробуем curl...${NC}"
             if command -v curl &> /dev/null; then
-                curl -L https://github.com/yourusername/handycode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
+                curl -L https://github.com/WiteRive/HandyCode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
                 mv "$INSTALL_DIR/handycode-main" "$INSTALL_DIR/repo"
             else
                 echo -e "${RED}❌ Ни git, ни curl не найдены${NC}"
@@ -149,10 +149,10 @@ if command -v git &> /dev/null; then
     fi
 else
     if command -v curl &> /dev/null; then
-        curl -L https://github.com/yourusername/handycode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
+        curl -L https://github.com/WiteRive/HandyCode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
         mv "$INSTALL_DIR/handycode-main" "$INSTALL_DIR/repo"
     elif command -v wget &> /dev/null; then
-        wget -qO- https://github.com/yourusername/handycode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
+        wget -qO- https://github.com/WiteRive/HandyCode/archive/main.tar.gz | tar xz -C "$INSTALL_DIR"
         mv "$INSTALL_DIR/handycode-main" "$INSTALL_DIR/repo"
     else
         echo -e "${RED}❌ Ни git, ни curl, ни wget не найдены${NC}"

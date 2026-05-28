@@ -70,7 +70,7 @@ where git >nul 2>nul
 if %errorlevel% equ 0 (
     set TEMP_DIR=%TEMP%\handycode_install
     if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!"
-    git clone https://github.com/yourusername/handycode.git "!TEMP_DIR!" 2>nul
+    git clone https://github.com/WiteRive/HandyCode.git "!TEMP_DIR!" 2>nul
     if exist "!TEMP_DIR!\setup.py" (
         cd /d "!TEMP_DIR!"
         %PYTHON_CMD% -m pip install --user -e . 2>nul
