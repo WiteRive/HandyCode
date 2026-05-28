@@ -12,14 +12,12 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime
 
-# readline только для Linux/Mac
 try:
     import readline
     HAS_READLINE = True
 except ImportError:
     HAS_READLINE = False
 
-# requests или urllib
 try:
     import requests
     HAS_REQUESTS = True
@@ -55,7 +53,7 @@ class HandyCode:
 
         self.api_key = self.config.get_api_key()
         if not self.api_key:
-            raise ValueError("API ключ не найден. Установите OPENROUTER_API_KEY")
+            raise ValueError("API key not found. Set OPENROUTER_API_KEY")
 
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -101,23 +99,22 @@ full file content here
 
 To modify a file:
 [[MODIFY:path/to/file.ext]]
-complete new content of the file
 
 To run commands:
 [[EXEC:command to execute]]
 
-IMPORTANT:
-1. ALWAYS show COMPLETE file contents
-2. Create ALL necessary files
-3. Verify the project is ready to run
+IMPORTANT RULES:
+1. ALWAYS create files BEFORE executing commands that use them
+2. ALWAYS show COMPLETE file contents
+3. Put CREATE actions BEFORE EXEC actions
+4. Create ALL necessary files
+5. Verify the project is ready to run
 
 Speak Russian. Write code in English."""
 
     def _setup_readline(self):
-        """Настройка истории команд (только Linux/Mac)"""
         if not HAS_READLINE:
             return
-
         try:
             histfile = os.path.join(os.path.expanduser("~"), ".handycode", "history")
             os.makedirs(os.path.dirname(histfile), exist_ok=True)
@@ -133,21 +130,18 @@ Speak Russian. Write code in English."""
             print("\n\nPress Ctrl+C again to exit, or /exit")
             signal.signal(signal.SIGINT, self._signal_handler)
         else:
-            print("\n\nGoodbye!")
             os._exit(0)
 
     def reset_interrupt(self):
         self._interrupt_count = 0
 
     def _make_request(self, data: dict) -> str:
-        """Отправляет запрос к API"""
         if HAS_REQUESTS:
             return self._make_request_requests(data)
         else:
             return self._make_request_urllib(data)
 
     def _make_request_requests(self, data: dict) -> str:
-        """Запрос через requests"""
         try:
             response = requests.post(
                 self.api_url,
@@ -160,23 +154,19 @@ Speak Russian. Write code in English."""
                 json=data,
                 timeout=120
             )
-
             response.raise_for_status()
             result = response.json()
 
             if 'choices' in result and len(result['choices']) > 0:
                 return result['choices'][0]['message']['content']
-
             return ""
         except Exception as e:
             print_error(f"API Error: {e}")
             return ""
 
     def _make_request_urllib(self, data: dict) -> str:
-        """Запрос через urllib"""
         try:
             json_data = json.dumps(data).encode('utf-8')
-
             req = urllib.request.Request(
                 self.api_url,
                 data=json_data,
@@ -188,20 +178,12 @@ Speak Russian. Write code in English."""
                 },
                 method='POST'
             )
-
             ctx = ssl.create_default_context()
-
             with urllib.request.urlopen(req, context=ctx, timeout=120) as response:
                 result = json.loads(response.read().decode('utf-8'))
-
                 if 'choices' in result and len(result['choices']) > 0:
                     return result['choices'][0]['message']['content']
-
                 return ""
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode('utf-8')
-            print_error(f"HTTP Error {e.code}: {error_body}")
-            return ""
         except Exception as e:
             print_error(f"Request error: {e}")
             return ""
@@ -233,9 +215,7 @@ Speak Russian. Write code in English."""
         }
 
         try:
-            model_name = self._get_model_display_name()
-            print_info(f"\n{model_name}:")
-
+            print_info(f"\n{self._get_model_display_name()}:")
             response = self._make_request(payload)
 
             if response:
@@ -296,8 +276,17 @@ Speak Russian. Write code in English."""
         if not actions:
             return
 
+        # СОРТИРУЕМ: сначала CREATE/MODIFY, потом EXEC
+        file_actions = [a for a in actions if a['type'] in ['create', 'modify']]
+        exec_actions = [a for a in actions if a['type'] == 'exec']
+
+        all_actions = file_actions + exec_actions
+
+        if not all_actions:
+            return
+
         print_header("\nFILE ACTIONS")
-        for i, action in enumerate(actions, 1):
+        for i, action in enumerate(all_actions, 1):
             if action['type'] == 'create':
                 print(f"  {i}. Create: {action['path']}")
             elif action['type'] == 'modify':
@@ -318,8 +307,16 @@ Speak Russian. Write code in English."""
             print_warning("Skipped")
             return
         elif choice == 'A':
-            for action in actions:
+            # Сначала создаём/изменяем файлы
+            for action in file_actions:
                 self._execute_action(action)
+            # Потом выполняем команды
+            for action in exec_actions:
+                self._execute_action(action)
+        elif choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(all_actions):
+                self._execute_action(all_actions[idx])
 
     def _execute_action(self, action: Dict):
         try:
@@ -360,7 +357,7 @@ Speak Russian. Write code in English."""
         parts = user_input.split()
         cmd = parts[0].lower()
 
-        if cmd in ['/help', '/h', '/помощь']:
+        if cmd in ['/help', '/h']:
             print("""
 COMMANDS:
   /help          Show help
@@ -372,32 +369,32 @@ COMMANDS:
   /stats         Statistics
   /exit          Exit
             """)
-        elif cmd in ['/scan', '/s', '/сканировать']:
+        elif cmd in ['/scan', '/s']:
             print(self.file_manager.scan_project())
-        elif cmd in ['/models', '/m', '/модели']:
+        elif cmd in ['/models', '/m']:
             for name, model_id in MODELS.items():
                 marker = " (current)" if model_id == self.current_model else ""
                 print(f"  {name}{marker}")
-        elif cmd in ['/clear', '/c', '/очистить']:
+        elif cmd in ['/clear', '/c']:
             self.conversation_history = [self.conversation_history[0]]
             print_success("Cleared")
-        elif cmd in ['/save', '/сохранить']:
+        elif cmd in ['/save']:
             self.file_manager.save_session(
                 self.conversation_history,
                 self.current_model,
                 self.stats
             )
-        elif cmd in ['/stats', '/статистика']:
+        elif cmd in ['/stats']:
             duration = datetime.now() - self.stats["start_time"]
             print(f"Messages: {self.stats['messages_sent']}")
             print(f"Created: {len(self.stats['files_created'])} files")
             print(f"Modified: {len(self.stats['files_modified'])} files")
             print(f"Commands: {len(self.stats['commands_executed'])}")
             print(f"Duration: {duration}")
-        elif cmd in ['/exit', '/q', '/выход']:
+        elif cmd in ['/exit', '/q']:
             print_success("Goodbye!")
             os._exit(0)
-        elif cmd in ['/model', '/модель'] and len(parts) > 1:
+        elif cmd in ['/model'] and len(parts) > 1:
             model_name = parts[1]
             if model_name in MODELS:
                 self.current_model = MODELS[model_name]
